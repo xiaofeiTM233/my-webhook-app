@@ -1,69 +1,70 @@
-import Image from "next/image";
+// app/page.tsx
+'use client';
+import { useState, useEffect, useCallback } from 'react';
+import { Tabs, Button, Table, Tag, Space, Popconfirm, message, Typography } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import Link from 'next/link';
+import { api } from '@/lib/api';
 
 export default function Home() {
+  const [tab, setTab] = useState('rules');
+  const [rules, setRules] = useState<{ items: unknown[]; total: number }>({ items: [], total: 0 });
+  const [actions, setActions] = useState<{ items: unknown[]; total: number }>({ items: [], total: 0 });
+  const [loading, setLoading] = useState(false);
+
+  const fetchRules = useCallback(async () => {
+    setLoading(true);
+    try { setRules(await api.getRules()); } catch { message.error('获取规则列表失败'); }
+    finally { setLoading(false); }
+  }, []);
+
+  const fetchActions = useCallback(async () => {
+    setLoading(true);
+    try { setActions(await api.getActions()); } catch { message.error('获取操作列表失败'); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchRules(); fetchActions(); }, [fetchRules, fetchActions]);
+
+  const columns = tab === 'rules' ? [
+    { title: '名称', dataIndex: 'name', key: 'name', render: (v: string, r: Record<string, unknown>) => <Link href={`/rules/${r._id}`}>{v}</Link> },
+    { title: '优先级', dataIndex: 'priority', key: 'priority', width: 80 },
+    { title: '状态', dataIndex: 'enabled', key: 'enabled', width: 80, render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{v ? '启用' : '禁用'}</Tag> },
+    { title: '标签', dataIndex: 'tags', key: 'tags', render: (v: string[]) => v?.map(t => <Tag key={t}>{t}</Tag>) },
+    { title: '操作', key: 'op', width: 180, render: (_: unknown, r: Record<string, unknown>) => (
+      <Space>
+        <Link href={`/rules/${r._id}`}><Button size="small" icon={<EditOutlined />}>编辑</Button></Link>
+        <Popconfirm title="确定删除?" onConfirm={async () => { await api.deleteRule(r._id as string); fetchRules(); message.success('已删除'); }}>
+          <Button size="small" danger icon={<DeleteOutlined />} />
+        </Popconfirm>
+      </Space>
+    )},
+  ] : [
+    { title: '名称', dataIndex: 'name', key: 'name', render: (v: string, r: Record<string, unknown>) => <Link href={`/actions/${r._id}`}>{v}</Link> },
+    { title: '步骤数', key: 'steps', width: 80, render: (_: unknown, r: Record<string, unknown>) => (r.steps as unknown[])?.length || 0 },
+    { title: '状态', dataIndex: 'enabled', key: 'enabled', width: 80, render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{v ? '启用' : '禁用'}</Tag> },
+    { title: '标签', dataIndex: 'tags', key: 'tags', render: (v: string[]) => v?.map(t => <Tag key={t}>{t}</Tag>) },
+    { title: '操作', key: 'op', width: 180, render: (_: unknown, r: Record<string, unknown>) => (
+      <Space>
+        <Link href={`/actions/${r._id}`}><Button size="small" icon={<EditOutlined />}>编辑</Button></Link>
+        <Popconfirm title="确定删除?" onConfirm={async () => { await api.deleteAction(r._id as string); fetchActions(); message.success('已删除'); }}>
+          <Button size="small" danger icon={<DeleteOutlined />} />
+        </Popconfirm>
+      </Space>
+    )},
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
+      <Typography.Title level={3}>My Webhook App</Typography.Title>
+      <Tabs activeKey={tab} onChange={setTab} tabBarExtraContent={
+        <Link href={tab === 'rules' ? '/rules/new' : '/actions/new'}>
+          <Button type="primary" icon={<PlusOutlined />}>新建{tab === 'rules' ? '规则' : '操作'}</Button>
+        </Link>
+      } items={[
+        { key: 'rules', label: '规则', children: <Table rowKey="_id" dataSource={rules.items} columns={columns as never} loading={loading} /> },
+        { key: 'actions', label: '操作任务', children: <Table rowKey="_id" dataSource={actions.items} columns={columns as never} loading={loading} /> },
+      ]} />
     </div>
   );
 }
